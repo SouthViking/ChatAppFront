@@ -1,9 +1,9 @@
 import React from 'react';
-import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom'
 import useWebSocket from 'react-use-websocket';
 import { Button, TextField } from '@mui/material';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { processServerMessage } from '../api/messagesProcessor';
 
 interface LoginInputs {
     username: string;
@@ -29,18 +29,7 @@ export default function LoginForm () {
     };
 
     React.useEffect(() => {
-        if (lastMessage !== null) {
-            const data = JSON.parse(lastMessage.data);
-            // TODO: Use same enum as used in the backend.
-            if (data.type === 0) {
-                if (data.success) {
-                    navigate('/chat-room');
-                } else {
-                    toast.error('Ups! There has been an internal error during the connection with the server.');
-                }
-            }
-        }
-
+        processServerMessage(lastMessage, navigate);
     }, [lastMessage, navigate]);
 
 
