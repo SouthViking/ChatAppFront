@@ -4,7 +4,7 @@ import LoginForm from './pages/login/form';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { UserData, UserDataContextProvider } from './pages/types/context';
+import { UserData, UserDataContextProvider } from './types/context';
 
 export const UserDataContext = React.createContext<UserDataContextProvider | null>(null);
 

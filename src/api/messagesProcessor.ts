@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
 import { NavigateFunction } from 'react-router-dom';
-import { MessageType, ResponseMessage } from '../pages/types/messages';
+import { MessageType, ResponseMessage } from '../types/messages';
 
 export const processServerMessage = (messageEvent: MessageEvent<string> | null, navigate: NavigateFunction) => {
     try {
