@@ -1,7 +1,6 @@
 import './App.css';
 import React from 'react';
-import ChatRoom from './pages/room';
-import LoginForm from './pages/login/form';
+import { ChatRoom, LoginForm } from './pages';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
@@ -19,7 +18,8 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path='/' element={<LoginForm />} />
-              <Route path='*' element={<ChatRoom />} />
+              <Route path='/chat-room' element={<ChatRoom />} />
+              <Route path='*' element={<LoginForm />} />
             </Routes>
           </BrowserRouter>
         </UserDataContext.Provider>

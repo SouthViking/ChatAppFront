@@ -12,7 +12,7 @@ interface LoginInputs {
 
 const WEBSOCKET_URL = 'ws://localhost:8080';
 
-export default function LoginForm () {
+export const LoginForm = () => {
     const navigate = useNavigate();
     const userDataContext = useContext(UserDataContext);
     const { register, handleSubmit, formState: { errors } } = useForm<LoginInputs>();
@@ -51,5 +51,5 @@ export default function LoginForm () {
                 <Button color="success" type="submit" variant="contained">Join</Button>
             </div>
         </form>
-    </>
-}
+    </>;
+};
