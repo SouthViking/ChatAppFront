@@ -1,5 +1,6 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom'
+import React, { useContext } from 'react';
+import { UserDataContext } from '../../App';
+import { useNavigate } from 'react-router-dom';
 import useWebSocket from 'react-use-websocket';
 import { Button, TextField } from '@mui/material';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -13,6 +14,7 @@ const WEBSOCKET_URL = 'ws://localhost:8080';
 
 export default function LoginForm () {
     const navigate = useNavigate();
+    const userDataContext = useContext(UserDataContext);
     const { register, handleSubmit, formState: { errors } } = useForm<LoginInputs>();
     const { sendJsonMessage, lastMessage } = useWebSocket(WEBSOCKET_URL, {
         onOpen: () => {
@@ -21,11 +23,12 @@ export default function LoginForm () {
     });
 
     const onSubmit: SubmitHandler<LoginInputs> = (data) => { 
+        userDataContext?.setUserData((previousData) =>  ({ ...previousData, username: data.username }));
         sendJsonMessage({ 
             timestamp: Date.now(),
             type: 0,
             username: data.username,
-         });
+        });
     };
 
     React.useEffect(() => {
