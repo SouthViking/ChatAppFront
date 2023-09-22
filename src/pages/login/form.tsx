@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import useWebSocket from 'react-use-websocket';
 import { Button, TextField } from '@mui/material';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { processServerMessage } from '../api/messagesProcessor';
+import { processServerMessage } from '../../api/messagesProcessor';
 
 interface LoginInputs {
     username: string;
