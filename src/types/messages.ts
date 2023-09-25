@@ -1,3 +1,5 @@
+import { ServerUserData } from './user';
+
 export enum ResponseMessageType {
     CONNECTION,
     USER_TEXT,
@@ -17,5 +19,10 @@ export interface BaseMessage {
 
 export interface ResponseMessage extends BaseMessage {
     success: boolean,
-    message: string;
+    message?: string;
+}
+
+export interface ConnectionResponseMessage extends ResponseMessage {
+    userData: ServerUserData;
+    userList: ServerUserData[];
 }

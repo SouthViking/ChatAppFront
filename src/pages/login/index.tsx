@@ -1,12 +1,11 @@
 import { toast } from 'react-toastify';
 import React, { useContext } from 'react';
-import { UserDataContext } from '../../App';
-import { useNavigate } from 'react-router-dom';
 import useWebSocket from 'react-use-websocket';
+import { useNavigate } from 'react-router-dom';
 import { Button, TextField } from '@mui/material';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { ResponseMessageType, ResponseMessage } from '../../types/messages';
-import { generateRandomHexColor, isIncompleteUserDataContext, isUserDataAvailable, loadUserDataFromStorage } from '../../utils';
+import { ChatRoomContext, UserDataContext } from '../../App';
+import { ResponseMessageType, ConnectionResponseMessage } from '../../types/messages';
 
 interface LoginInputs {
     username: string;
@@ -15,7 +14,7 @@ interface LoginInputs {
 export const LoginForm = () => {
     const navigate = useNavigate();
     const userDataContext = useContext(UserDataContext);
-
+    const chatRoomDataContext = useContext(ChatRoomContext);
     const { sendJsonMessage, lastMessage } = useWebSocket('ws://localhost:8080');
     const { register, handleSubmit, formState: { errors } } = useForm<LoginInputs>();
 
@@ -24,23 +23,20 @@ export const LoginForm = () => {
         sendJsonMessage({ 
             isConnect: true,
             timestamp: Date.now(),
-            username: data.username,
+            userData: {
+                username: data.username,
+            },
             type: ResponseMessageType.CONNECTION,
         });
     };
 
     React.useEffect(() => {
         try {
-            if (isIncompleteUserDataContext(userDataContext!) && isUserDataAvailable()) {
-                loadUserDataFromStorage(userDataContext!);
-                return navigate('/chat-room');
-            }
-
             if (lastMessage === null) {
                 return;
             }
 
-            const data: ResponseMessage = JSON.parse(lastMessage.data);
+            const data: ConnectionResponseMessage = JSON.parse(lastMessage.data);
             if (data.type !== ResponseMessageType.CONNECTION) {
                 if (data.type !== ResponseMessageType.ERROR) {
                     return;
@@ -54,11 +50,10 @@ export const LoginForm = () => {
                 toast.error(`${data.message}`);
                 return;
             }
+            
 
-            localStorage.setItem('username', userDataContext!.userData.username);
-            const assignedAvatarColor = generateRandomHexColor();
-            userDataContext?.setUserData((prevUserData) => ({ ...prevUserData, avatarColor: assignedAvatarColor }));
-            localStorage.setItem('avatarColor', assignedAvatarColor);
+            userDataContext?.setUserData(data.userData);
+            chatRoomDataContext?.setChatRoomData((prevChatRoomDataContext) => ({ ...prevChatRoomDataContext, userList: data.userList }));
 
             navigate('/chat-room');
 

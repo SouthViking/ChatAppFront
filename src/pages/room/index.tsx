@@ -1,10 +1,10 @@
 import React from 'react';
 import { toast } from 'react-toastify';
-import { UserDataContext } from '../../App';
 import useWebSocket from 'react-use-websocket';
-import { useNavigate } from 'react-router-dom';
 import SendIcon from '@mui/icons-material/Send';
+import { ServerUserData } from '../../types/user';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { ChatRoomContext, UserDataContext } from '../../App';
 import { ResponseMessageType, UserMessageType } from '../../types/messages';
 import { 
     Grid,
@@ -22,7 +22,6 @@ import {
     Chip,
     Stack,
 } from '@mui/material';
-import { generateRandomHexColor, isIncompleteUserDataContext } from '../../utils';
 
 interface ChatBoxInputs {
     message: string;
@@ -43,26 +42,13 @@ const styles: Record<string, React.CSSProperties> = {
 };
 
 export const ChatRoom = () => {
-    const navigate = useNavigate();
     const userDataContext = React.useContext(UserDataContext);
-    const { lastMessage, sendJsonMessage } = useWebSocket('ws://localhost:8080');
-    const [messageList, setMessageList] = React.useState<any[]>([]);
+    const chatRoomDataContext = React.useContext(ChatRoomContext);
+    const [ messageList, setMessageList ] = React.useState<any[]>([]);
     const { register, handleSubmit, resetField } = useForm<ChatBoxInputs>();
+    const { lastMessage, sendJsonMessage } = useWebSocket('ws://localhost:8080');
+    const [ avatarColor ] = React.useState(userDataContext?.userData.avatar?.hexColor);
 
-    const getUserAvatarColor = () => {
-        if (userDataContext?.userData.avatarColor) {
-            return userDataContext.userData.avatarColor;
-        }
-
-        const storedAvatarColor = localStorage.getItem('avatarColor');
-        if (storedAvatarColor) {
-            return storedAvatarColor;
-        }
-
-        return generateRandomHexColor();
-    }
-
-    const [avatarColor, setAvatarColor] = React.useState(getUserAvatarColor());
 
     const onSubmit: SubmitHandler<ChatBoxInputs> = (data) => {
         const messageToSend = {
@@ -91,18 +77,7 @@ export const ChatRoom = () => {
         resetField('message');
     };
 
-    const loadUsername = () => {
-        const storedUsername = localStorage.getItem('username');
-        if (storedUsername !== null) {
-            userDataContext?.setUserData((prevUserData) => ({ ...prevUserData, username: storedUsername }));
-        }
-    }
-
     React.useEffect(() => {
-        if (isIncompleteUserDataContext(userDataContext!)) {
-            return navigate('/');
-        }
-
         if (lastMessage === null) {
             return;
         }
@@ -111,7 +86,17 @@ export const ChatRoom = () => {
 
         if (data.type === ResponseMessageType.USER_CONNECTION) {
             const connectionMessage = `${data.username} has ${data.isConnect ? 'joined' : 'left'} the chat room!`;
+            const currentUsers: ServerUserData[] = data.userList;
+    
+            chatRoomDataContext?.setChatRoomData((prevChatRoomData) => {
+                return {
+                    ...prevChatRoomData,
+                    userList: currentUsers.filter(userData => userData.username !== userDataContext?.userData.username),
+                };
+            })
+
             toast.info(connectionMessage);
+    
         } else if (data.type === ResponseMessageType.USER_TEXT) {
             setMessageList((previousMessageList) => [...previousMessageList, data]);
         }
@@ -137,24 +122,14 @@ export const ChatRoom = () => {
                     </List>
                     <Divider />
                     <List>
-                        <ListItemButton key="user1">
+                        { (chatRoomDataContext?.chatRoomData.userList ?? []).map(currentUser => {
+                            return <ListItemButton key={`list-item-button-${currentUser.username}`}>
                             <ListItemIcon>
-                                <Avatar>U1</Avatar>
+                                <Avatar sx={{ backgroundColor: `#${currentUser.avatar?.hexColor}` }}>{currentUser.username[0]}</Avatar>
                             </ListItemIcon>
-                            <ListItemText primary="User 1"></ListItemText>
+                            <ListItemText primary={currentUser.username}></ListItemText>
                         </ListItemButton>
-                        <ListItemButton key="user2">
-                            <ListItemIcon>
-                                <Avatar>U2</Avatar>
-                            </ListItemIcon>
-                            <ListItemText primary="User 2"></ListItemText>
-                        </ListItemButton>
-                        <ListItemButton key="user3">
-                            <ListItemIcon>
-                                <Avatar>U3</Avatar>
-                            </ListItemIcon>
-                            <ListItemText primary="User 3"></ListItemText>
-                        </ListItemButton>
+                        }) }
                     </List>
                 </Grid>
                 <Grid item xs={9}>
@@ -185,7 +160,7 @@ export const ChatRoom = () => {
                             <Grid item xs={11}>
                                     <TextField {...register('message', { required: true })} variant="outlined" fullWidth />
                             </Grid>
-                            <Grid xs={1}>
+                            <Grid item xs={1}>
                                 <Fab type="submit" color="primary" aria-label="add"><SendIcon /></Fab>
                             </Grid>
                         </form>
