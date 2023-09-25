@@ -1,38 +1,62 @@
+import { toast } from 'react-toastify';
 import React, { useContext } from 'react';
 import { UserDataContext } from '../../App';
 import { useNavigate } from 'react-router-dom';
 import useWebSocket from 'react-use-websocket';
 import { Button, TextField } from '@mui/material';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { processServerMessage } from '../../api/messagesProcessor';
+import { ResponseMessageType, ResponseMessage } from '../../types/messages';
 
 interface LoginInputs {
     username: string;
 }
 
-const WEBSOCKET_URL = 'ws://localhost:8080';
-
 export const LoginForm = () => {
     const navigate = useNavigate();
     const userDataContext = useContext(UserDataContext);
+    const { sendJsonMessage, lastMessage } = useWebSocket('ws://localhost:8080');
     const { register, handleSubmit, formState: { errors } } = useForm<LoginInputs>();
-    const { sendJsonMessage, lastMessage } = useWebSocket(WEBSOCKET_URL, {
-        onOpen: () => {
-            console.log('Websocket connection has been established.');
-        },
-    });
 
     const onSubmit: SubmitHandler<LoginInputs> = (data) => { 
         userDataContext?.setUserData((previousData) =>  ({ ...previousData, username: data.username }));
         sendJsonMessage({ 
+            isConnect: true,
             timestamp: Date.now(),
-            type: 0,
             username: data.username,
+            type: ResponseMessageType.CONNECTION,
         });
     };
 
     React.useEffect(() => {
-        processServerMessage(lastMessage, navigate);
+        try {
+            if (lastMessage === null) {
+                return;
+            }
+
+            const data: ResponseMessage = JSON.parse(lastMessage.data);
+            if (data.type !== ResponseMessageType.CONNECTION) {
+                if (data.type !== ResponseMessageType.ERROR) {
+                    return;
+                }
+                console.log(`Internal error: ${data.message}`);
+                toast.error(`There has been an internal error during the name registration. Please try again later.`);
+            }
+
+            if (!data.success) {
+                console.log(`Internal error: ${data.message}`);
+                toast.error(`${data.message}`);
+                return;
+            }
+
+            localStorage.setItem('username', userDataContext!.userData.username);
+
+            navigate('/chat-room');
+
+        } catch (err: unknown) {
+            console.log(`Internal error: ${err}`);
+            toast.error(`Ups! There has been an internal error.`);
+        }
+
     }, [lastMessage, navigate]);
 
 
