@@ -6,6 +6,7 @@ import useWebSocket from 'react-use-websocket';
 import { Button, TextField } from '@mui/material';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { ResponseMessageType, ResponseMessage } from '../../types/messages';
+import { generateRandomHexColor, isIncompleteUserDataContext, isUserDataAvailable, loadUserDataFromStorage } from '../../utils';
 
 interface LoginInputs {
     username: string;
@@ -14,6 +15,7 @@ interface LoginInputs {
 export const LoginForm = () => {
     const navigate = useNavigate();
     const userDataContext = useContext(UserDataContext);
+
     const { sendJsonMessage, lastMessage } = useWebSocket('ws://localhost:8080');
     const { register, handleSubmit, formState: { errors } } = useForm<LoginInputs>();
 
@@ -29,6 +31,11 @@ export const LoginForm = () => {
 
     React.useEffect(() => {
         try {
+            if (isIncompleteUserDataContext(userDataContext!) && isUserDataAvailable()) {
+                loadUserDataFromStorage(userDataContext!);
+                return navigate('/chat-room');
+            }
+
             if (lastMessage === null) {
                 return;
             }
@@ -49,6 +56,9 @@ export const LoginForm = () => {
             }
 
             localStorage.setItem('username', userDataContext!.userData.username);
+            const assignedAvatarColor = generateRandomHexColor();
+            userDataContext?.setUserData((prevUserData) => ({ ...prevUserData, avatarColor: assignedAvatarColor }));
+            localStorage.setItem('avatarColor', assignedAvatarColor);
 
             navigate('/chat-room');
 

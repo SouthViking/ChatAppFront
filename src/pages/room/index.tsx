@@ -2,6 +2,7 @@ import React from 'react';
 import { toast } from 'react-toastify';
 import { UserDataContext } from '../../App';
 import useWebSocket from 'react-use-websocket';
+import { useNavigate } from 'react-router-dom';
 import SendIcon from '@mui/icons-material/Send';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { ResponseMessageType, UserMessageType } from '../../types/messages';
@@ -21,6 +22,7 @@ import {
     Chip,
     Stack,
 } from '@mui/material';
+import { generateRandomHexColor, isIncompleteUserDataContext } from '../../utils';
 
 interface ChatBoxInputs {
     message: string;
@@ -40,21 +42,27 @@ const styles: Record<string, React.CSSProperties> = {
     },
 };
 
-const generateAvatarColor = () => {
-    const storedAvatarColor = localStorage.getItem('avatarColor');
-    const avatarColor = storedAvatarColor ?? Math.random().toString(16).substr(-6);
-
-    localStorage.setItem('avatarColor', avatarColor);
-    
-    return avatarColor;
-};
-
 export const ChatRoom = () => {
+    const navigate = useNavigate();
     const userDataContext = React.useContext(UserDataContext);
     const { lastMessage, sendJsonMessage } = useWebSocket('ws://localhost:8080');
     const [messageList, setMessageList] = React.useState<any[]>([]);
     const { register, handleSubmit, resetField } = useForm<ChatBoxInputs>();
-    const [avatarColor, setAvatarColor] = React.useState(generateAvatarColor());
+
+    const getUserAvatarColor = () => {
+        if (userDataContext?.userData.avatarColor) {
+            return userDataContext.userData.avatarColor;
+        }
+
+        const storedAvatarColor = localStorage.getItem('avatarColor');
+        if (storedAvatarColor) {
+            return storedAvatarColor;
+        }
+
+        return generateRandomHexColor();
+    }
+
+    const [avatarColor, setAvatarColor] = React.useState(getUserAvatarColor());
 
     const onSubmit: SubmitHandler<ChatBoxInputs> = (data) => {
         const messageToSend = {
@@ -91,8 +99,8 @@ export const ChatRoom = () => {
     }
 
     React.useEffect(() => {
-        if (userDataContext?.userData.username.length === 0) {
-            loadUsername();
+        if (isIncompleteUserDataContext(userDataContext!)) {
+            return navigate('/');
         }
 
         if (lastMessage === null) {

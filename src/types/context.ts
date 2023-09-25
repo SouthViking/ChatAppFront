@@ -1,6 +1,7 @@
 
 export interface UserData {
     username: string;
+    avatarColor?: string;
 }
 
 export interface UserDataContextProvider {
