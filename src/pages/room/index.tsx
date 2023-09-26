@@ -42,12 +42,13 @@ const styles: Record<string, React.CSSProperties> = {
 };
 
 export const ChatRoom = () => {
+    const firstLoad = React.useRef(true);
     const userDataContext = React.useContext(UserDataContext);
     const chatRoomDataContext = React.useContext(ChatRoomContext);
     const [ messageList, setMessageList ] = React.useState<any[]>([]);
     const { register, handleSubmit, resetField } = useForm<ChatBoxInputs>();
+    const [ avatarColor, setAvatarColor ] = React.useState<string | null>(null);
     const { lastMessage, sendJsonMessage } = useWebSocket('ws://localhost:8080');
-    const [ avatarColor ] = React.useState(userDataContext?.userData.avatar?.hexColor);
 
 
     const onSubmit: SubmitHandler<ChatBoxInputs> = (data) => {
@@ -77,7 +78,28 @@ export const ChatRoom = () => {
         resetField('message');
     };
 
+    const updateChatRoomUserList = (currentUserList: ServerUserData[]) => {
+        chatRoomDataContext?.setChatRoomData((prevChatRoomData) => {
+            return {
+                ...prevChatRoomData,
+                userList: currentUserList.filter(userData => userData.username !== userDataContext?.userData.username),
+            };
+        });
+    };
+
     React.useEffect(() => {
+        if (firstLoad.current && userDataContext) {
+            sendJsonMessage({
+                isConnect: true,
+                userData: {
+                    username: userDataContext.userData.username
+                },
+                type: ResponseMessageType.CONNECTION,
+            });
+
+            firstLoad.current = false;
+        }
+
         if (lastMessage === null) {
             return;
         }
@@ -85,18 +107,16 @@ export const ChatRoom = () => {
         const data = JSON.parse(lastMessage.data);
 
         if (data.type === ResponseMessageType.USER_CONNECTION) {
-            const connectionMessage = `${data.username} has ${data.isConnect ? 'joined' : 'left'} the chat room!`;
-            const currentUsers: ServerUserData[] = data.userList;
-    
-            chatRoomDataContext?.setChatRoomData((prevChatRoomData) => {
-                return {
-                    ...prevChatRoomData,
-                    userList: currentUsers.filter(userData => userData.username !== userDataContext?.userData.username),
-                };
-            })
+            updateChatRoomUserList(data.userList);
 
-            toast.info(connectionMessage);
+            toast.info(`${data.username} has ${data.isConnect ? 'joined' : 'left'} the chat room!`);
     
+        } else if (data.type === ResponseMessageType.CONNECTION) {
+            updateChatRoomUserList(data.userList);
+
+            userDataContext?.setUserData(data.userData);
+            setAvatarColor(data.userData.avatar?.hexColor);
+        
         } else if (data.type === ResponseMessageType.USER_TEXT) {
             setMessageList((previousMessageList) => [...previousMessageList, data]);
         }
