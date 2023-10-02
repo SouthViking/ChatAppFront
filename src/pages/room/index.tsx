@@ -62,6 +62,7 @@ export const ChatRoom = () => {
     const firstLoad = React.useRef(true);
     const userDataContext = React.useContext(UserDataContext);
     const chatRoomDataContext = React.useContext(ChatRoomContext);
+    const notificationAudio = new Audio('/notification-sound.wav');
     const [ messageList, setMessageList ] = React.useState<any[]>([]);
     const { register, handleSubmit, resetField } = useForm<ChatBoxInputs>();
     const [ avatarColor, setAvatarColor ] = React.useState<string | null>(null);
@@ -141,6 +142,7 @@ export const ChatRoom = () => {
         
         } else if (data.type === ResponseMessageType.USER_TEXT) {
             setMessageList((previousMessageList) => [...previousMessageList, data]);
+            notificationAudio.play();
         }
     }, [lastMessage]);
 
