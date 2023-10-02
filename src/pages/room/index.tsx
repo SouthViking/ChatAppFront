@@ -21,7 +21,10 @@ import {
     ListItemButton,
     Chip,
     Stack,
+    ChipProps,
+    styled,
 } from '@mui/material';
+import { getIdealTextColor } from '../../utils';
 
 interface ChatBoxInputs {
     message: string;
@@ -41,6 +44,20 @@ const styles: Record<string, React.CSSProperties> = {
     },
 };
 
+interface ColorsProps {
+    colors: {
+        text: string;
+        background: string;
+    }
+}
+
+interface StyledChipProps extends ChipProps, ColorsProps {}
+
+const StyledChip = styled(Chip)<StyledChipProps>(({ theme, colors }) => ({
+    color: colors.text,
+    backgroundColor: colors.background,
+}));
+
 export const ChatRoom = () => {
     const firstLoad = React.useRef(true);
     const userDataContext = React.useContext(UserDataContext);
@@ -49,7 +66,7 @@ export const ChatRoom = () => {
     const { register, handleSubmit, resetField } = useForm<ChatBoxInputs>();
     const [ avatarColor, setAvatarColor ] = React.useState<string | null>(null);
     const { lastMessage, sendJsonMessage } = useWebSocket('ws://localhost:8080');
-
+    const [ usersColors, setUsersColors ] = React.useState<Record<string, string>>({});
 
     const onSubmit: SubmitHandler<ChatBoxInputs> = (data) => {
         const messageToSend = {
@@ -79,6 +96,10 @@ export const ChatRoom = () => {
     };
 
     const updateChatRoomUserList = (currentUserList: ServerUserData[]) => {
+        for (const userData of currentUserList) {
+            setUsersColors((prevUsersColors) => ({ ...prevUsersColors, [userData.username]: userData.avatar?.hexColor ?? 'FFFFFF' }))
+        }
+
         chatRoomDataContext?.setChatRoomData((prevChatRoomData) => {
             return {
                 ...prevChatRoomData,
@@ -116,11 +137,11 @@ export const ChatRoom = () => {
 
             userDataContext?.setUserData(data.userData);
             setAvatarColor(data.userData.avatar?.hexColor);
+            setUsersColors((prevUsersColors) => ({ ...prevUsersColors, [data.userData.username]: data.userData.avatar?.hexColor ?? 'FFFFFF' }));
         
         } else if (data.type === ResponseMessageType.USER_TEXT) {
             setMessageList((previousMessageList) => [...previousMessageList, data]);
         }
-
     }, [lastMessage]);
 
     return (
@@ -156,11 +177,13 @@ export const ChatRoom = () => {
                     <List style={styles.messageArea}>
 
                         { messageList.map(message => {
+                            const userAvatarColor = usersColors[message.from] ? `#${usersColors[message.from]}` : '#FFFFFF';
+
                             return <ListItem key={`message-${message.timestamp}`}>
                                 <Grid container>
                                     <Grid item xs={12}>
                                         <Stack direction="row" spacing={1}>
-                                            <Chip avatar={<Avatar>{message.from[0]}</Avatar>} label={message.from} />
+                                            <StyledChip colors={{ background: userAvatarColor, text: getIdealTextColor(userAvatarColor) }} avatar={<Avatar>{message.from[0]}</Avatar>} label={message.from} />
                                         </Stack>
                                     </Grid>
                                     <Grid item xs={12} style={{ marginTop: 10, paddingLeft: 15 }}>
